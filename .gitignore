@@ -1,0 +1,12 @@
+__pycache__/
+*.pyc
+.env
+.env.*
+*.log
+*.pem
+.venv/
+.idea/
+.vSCode/
+data/
+tokens.json
+config.json
