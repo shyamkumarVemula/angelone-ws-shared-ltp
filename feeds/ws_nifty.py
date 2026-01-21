@@ -21,10 +21,11 @@ def start_nifty(session, allinst):
     # 2️⃣ Get spot price safely
     df = helper.getHistorical1("NSE:NIFTY", 1, 1)
     if df is None or df.empty or "close" not in df.columns:
-        print("⚠️ [WS_NIFTY] No historical data for NIFTY spot yet")
-        return
-
-    spot = float(df["close"].iloc[-1])
+        print("⚠️ [WS_NIFTY] No historical data for NIFTY spot yet. Using fallback.")
+        spot = 24000.0  # Fallback to allow WS to start
+    else:
+        spot = float(df["close"].iloc[-1])
+        
     print(f"📈 [WS_NIFTY] NIFTY Spot: {spot}")
 
     # 3️⃣ Get available strikes from JSON for this expiry
@@ -95,7 +96,7 @@ def start_nifty(session, allinst):
     ws.on_tick = on_tick
     ws.start()
 
-def on_tick(symbol, ltp):
+def on_tick(symbol, ltp, vol=0):
     # Update shared memory
-    set_ltp(symbol, ltp)
-    # print(f"🟨 [WS_NIFTY] tick {symbol} {ltp}")
+    set_ltp(symbol, ltp, vol)
+    # print(f"🟨 [WS_NIFTY] tick {symbol} {ltp} {vol}")

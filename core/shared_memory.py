@@ -15,13 +15,13 @@ def init_shared_memory():
     print("🟩 [SHARED_MEMORY] latest_prices dict created")
 
 
-def set_ltp(symbol, price):
+def set_ltp(symbol, price, vol=0):
     if latest_prices is None:
         print("🟥 [SHARED_MEMORY] set_ltp called before init")
         return
 
-    latest_prices[symbol] = price
-    print(f"🟨 [SHARED_MEMORY] LTP updated {symbol} = {price}")
+    latest_prices[symbol] = (price, vol)
+    # print(f"🟨 [SHARED_MEMORY] LTP updated {symbol} = {price} Vol={vol}")
 
 
 def get_latest_prices():

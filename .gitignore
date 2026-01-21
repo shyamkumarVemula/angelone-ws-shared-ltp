@@ -10,3 +10,4 @@ __pycache__/
 data/
 tokens.json
 config.json
+OpenAPIScripMaster.json

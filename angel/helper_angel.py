@@ -362,8 +362,13 @@ def getHistorical1(ticker,interval,duration):
         "todate": to_date_string
     }
  
-    hist_data = hist_obj.getCandleData(historicDataParams= historyparams)
-    hist_data = pd.DataFrame(hist_data['data'])
+    hist_resp = hist_obj.getCandleData(historicDataParams= historyparams)
+    
+    if not hist_resp or 'data' not in hist_resp or not hist_resp['data']:
+        return pd.DataFrame()
+
+    hist_data = pd.DataFrame(hist_resp['data'])
+    
     hist_data.columns = ['timestamp', 'open', 'high', 'low', 'close', 'volume']
     hist_data['datetime2'] = hist_data['timestamp'].copy()
     hist_data['timestamp'] = pd.to_datetime(hist_data['timestamp'])

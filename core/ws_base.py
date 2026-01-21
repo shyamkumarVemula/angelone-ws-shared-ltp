@@ -32,8 +32,13 @@ class AngelWebSocket:
         symbol = self.token_map.get(str(msg.get("token")))
         if symbol:
             ltp = msg.get("last_traded_price")
+            vol = msg.get("vol_traded", 0)
             if ltp is not None:
-                set_ltp(symbol, ltp / 100)
+                ltp = ltp / 100.0
+                if hasattr(self, "on_tick") and self.on_tick:
+                    self.on_tick(symbol, ltp, vol)
+                else:
+                    set_ltp(symbol, ltp)
 
     def on_error(self, ws, err):
         print(f"❌ [{self.name}] error: {err}")

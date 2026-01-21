@@ -3,6 +3,8 @@ from core.shared_memory import init_shared_memory, get_latest_prices
 import requests
 
 print("🟦 [START_ALL] script loaded")
+from core.expiry import get_current_nifty_expiry, get_nifty_strikes_for_expiry, find_atm_strike, get_option_symbol
+from angel import helper_angel as helper
 import os
 import json
 import time
@@ -75,10 +77,48 @@ def main():
     # 3️⃣ Load instruments
     allinst = load_instruments()
 
+    # 3.1️⃣ Pre-fetch Historical Data (To avoid 14-min wait for RSI)
+    print("🟦 [START_ALL] Pre-fetching historical data for indicators...")
+    preloaded_history = {}
+    
+    try:
+        # Logic duplicated from ws_nifty to identify symbols
+        expiry = get_current_nifty_expiry(allinst)
+        if expiry:
+            # Get Spot to find ATM
+            df_spot = helper.getHistorical("NSE:NIFTY", 1, 1)
+            if not df_spot.empty:
+                spot = float(df_spot["close"].iloc[-1])
+                strikes = get_nifty_strikes_for_expiry(allinst, expiry)
+                atm = find_atm_strike(strikes, spot)
+                
+                # Select strikes (ATM +/- 5)
+                idx = strikes.index(atm)
+                selected_strikes = strikes[max(0, idx-5): idx+6]
+                
+                symbols_to_fetch = ["NSE:NIFTY"]
+                for strike in selected_strikes:
+                    ce, _ = get_option_symbol(allinst, expiry, strike, "CE")
+                    pe, _ = get_option_symbol(allinst, expiry, strike, "PE")
+                    if ce: symbols_to_fetch.append(ce)
+                    if pe: symbols_to_fetch.append(pe)
+                
+                print(f"🟦 [START_ALL] Fetching history for {len(symbols_to_fetch)} symbols...")
+                
+                for sym in symbols_to_fetch:
+                    # Fetch last 1 day of 1-minute data
+                    df = helper.getHistorical(sym, 1, 1)
+                    if not df.empty:
+                        # Convert last 50 candles to list of dicts
+                        records = df.tail(50).reset_index().to_dict('records')
+                        preloaded_history[sym] = records
+    except Exception as e:
+        print(f"⚠️ [START_ALL] Error pre-fetching history: {e}")
+
     # 3.5 Start Collector (Consumer)
     from collector.collect_ltp import start_collector
     shared_prices = get_latest_prices()
-    p_collector = Process(target=start_collector, args=(shared_prices,))
+    p_collector = Process(target=start_collector, args=(shared_prices, preloaded_history))
     p_collector.start()
     print("🟦 [START_ALL] collector process started")
 
@@ -90,6 +130,12 @@ def main():
 
     print("🟩 [START_ALL] ws_nifty started")
 
+    # Keep the main process running to maintain SharedMemory Manager
+    try:
+        while True:
+            time.sleep(1)
+    except KeyboardInterrupt:
+        print("🛑 [START_ALL] Stopping...")
 
 if __name__ == "__main__":
     freeze_support()

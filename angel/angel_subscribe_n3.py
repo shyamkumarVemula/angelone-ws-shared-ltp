@@ -68,7 +68,11 @@ symbolList = []
 time.sleep(10)
 helper.login_historical()
 a = helper.getHistorical1("NSE:NIFTY",1,1)
-nifty_ltp = (a['close'].iloc[-1])
+if a.empty:
+    print("❌ [ERROR] Could not fetch NIFTY data. Using default LTP.")
+    nifty_ltp = 24000 # Fallback to avoid crash
+else:
+    nifty_ltp = (a['close'].iloc[-1])
 print(nifty_ltp)
 # b = helper.getHistorical("NSE:BANKNIFTY",1,1)
 # banknifty_ltp = (b['close'].iloc[-1])
@@ -330,4 +334,3 @@ connectFeed(SmartWebSocketV2OBJ)
 while True:
     df.head()
     time.sleep(2)
-
